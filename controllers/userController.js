@@ -73,12 +73,14 @@ const login = async (req, res) => {
 //hashing users password before its saved to the database
 const signup = async (req, res) => {
     try {
-        const { userName, email, password, role } = req.body;
+        const { userName, email, password, role, company_id, user_group_id } = req.body;
         const data = {
             userName,
             email,
             password,
-            role
+            role,
+            company_id,
+            user_group_id,
         };
         //saving the user
         const user = await User.create(data);
@@ -87,16 +89,21 @@ const signup = async (req, res) => {
         // set cookie with the token generated
         if (user) {
             let token = jwt.sign(
-                { name: user.username, password: user.password, email: user.email, role: user.role },
+                { name: user.username, password: user.password, email: user.email, role: user.role, company_id: user.company_id, user_group_id: user.user_group_id },
                 REFRESH_TOKEN_SECRET,
                 { expiresIn: REFRESH_TOKEN_EXPIRY }
             );
             res.cookie("jwt", token, { maxAge: 1 * 24 * 60 * 60, httpOnly: true });
             console.log("user", JSON.stringify(user, null, 2));
             console.log(token);
+
+            const response = {
+                ...user,
+                token
+            }
             //send users details
-            broadcast(req.app.locals.clients, 'signup', user);
-            return res.status(200).send(user);
+            // broadcast(req.app.locals.clients, 'signup', user);
+            return res.status(200).send(response);
         } else {
             return res.status(400).send("Invalid request body");
         }
