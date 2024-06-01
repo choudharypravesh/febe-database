@@ -5,6 +5,7 @@ const WebSocket = require('ws');
 const cookieParser = require('cookie-parser')
 const db = require('./models')
 const userRoutes = require ('./routes/userRoutes')
+const engineRoutes = require('./routes/engineRoutes')
 const ip = require('ip');
 const host = ip.address();
 const swaggerUi = require('swagger-ui-express');
@@ -43,7 +44,8 @@ app.use(function (req, res, next) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   next();
 });
-app.use('/api', userRoutes)
+app.use('/api/auth', userRoutes)
+app.use('/api/engine', engineRoutes)
 const server = createServer(app);
 //listening to server connection
 server.listen(port, function (error) {

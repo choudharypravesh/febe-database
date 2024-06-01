@@ -26,7 +26,7 @@
         }
     ],
     "paths": {
-        "/api/login": {
+        "/api/auth/login": {
             "post": {
                 "tags": [
                     "login-endpoint"
@@ -91,7 +91,7 @@
                 }
             }
         },
-        "/api/users?query={userEmail}": {
+        "/api/auth/users?query={userEmail}": {
             "get": {
                 "tags": [
                     "user-controller"
@@ -149,7 +149,7 @@
                 }
             }
         },
-        "/api/users/{userEmail}": {
+        "/api/auth/users/{userEmail}": {
             "put": {
                 "tags": [
                     "user-controller"
@@ -245,7 +245,7 @@
                         "description": "Not Found"
                     }
                 }
-            }, 
+            },
             "delete": {
                 "tags": [
                     "user-controller"
@@ -286,7 +286,7 @@
                 }
             }
         },
-        "/api/users/signup": {
+        "/api/auth/users/signup": {
             "post": {
                 "tags": [
                     "user-controller"
