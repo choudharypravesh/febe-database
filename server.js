@@ -44,8 +44,8 @@ app.use(function (req, res, next) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   next();
 });
-app.use('/api/auth', userRoutes)
-app.use('/api/engine', engineRoutes)
+app.use('/v1/api/auth', userRoutes)
+app.use('/v1/api/engine', engineRoutes)
 const server = createServer(app);
 //listening to server connection
 server.listen(port, function (error) {
