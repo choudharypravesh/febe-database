@@ -7,7 +7,7 @@ const { SOUL_API_BASE_URL } = process.env;
 const publish = async (req, res) => {
     try {
         const graphId = req.body.graph_id;
-        const schemaResponse = await axios.get(`${SOUL_API_BASE_URL}/api/tables/graphs/rows/${graphId}`);
+        const schemaResponse = await axios.get(`${SOUL_API_BASE_URL}/tables/graphs/rows/${graphId}`);
         const schemaData = schemaResponse?.data?.data;
         const transformedData = transformSchemaData(schemaData);
         console.log("🚀 ~ publish ~ transformedData:", JSON.stringify(transformedData));
