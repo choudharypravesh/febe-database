@@ -1,6 +1,6 @@
 require('dotenv').config();
 const axios = require('axios')
-const { SOUL_API_BASE_URL } = process.env;
+const { SOUL_API_BASE_URL, GITHUB_ACCESS_TOKEN } = process.env;
 
 
 
@@ -100,6 +100,29 @@ const transformSchemaData = (data) => {
         console.log("🚀 ~ transformSchemaData ~ ex:", ex);
         return {}
     }
+}
+
+
+const startEngineForBuildAndDeploy = async (schema) => {
+    try {
+        const body = {
+            event_type: "custom_event",
+            client_payload: schema
+         }
+
+         const res = await axios.post('https://api.github.com/repos/ravi-dhyani8881/local/dispatches', body, {
+            headers: {
+                Authorization: GITHUB_ACCESS_TOKEN,
+                Accept: 'application/json'
+            }
+         });
+         console.log("🚀 ~ startEngineForBuildAndDeploy ~ res:", res);
+         return res;
+    } catch (ex) {
+        console.log("🚀 ~ startEngineForBuildAndDeploy ~ ex:", ex);
+        return ex
+    }
+
 }
 
 
