@@ -1,26 +1,28 @@
 require('dotenv').config();
 const axios = require('axios')
-const { SOUL_API_BASE_URL } = process.env;
+const { SOUL_API_BASE_URL, GITHUB_ACCESS_TOKEN } = process.env;
 
 
 
 const publish = async (req, res) => {
     try {
         const graphId = req.body.graph_id;
-        const schemaResponse = await axios.get(`${SOUL_API_BASE_URL}/api/tables/graphs/rows/${graphId}`);
-        const schemaData = schemaResponse?.data?.data;
+        const schemaByGraphId = await axios.get(`${SOUL_API_BASE_URL}/tables/graphs/rows/${graphId}`);
+        const schemaData = schemaByGraphId?.data?.data;
         const transformedData = transformSchemaData(schemaData);
-        console.log("🚀 ~ publish ~ transformedData:", JSON.stringify(transformedData));
+        const engineResponse = await startEngineForBuildAndDeploy(transformedData);
 
-        return res.status(200).send({
+        return res.status(engineResponse.status).send({
             success: 'ok',
+            waitTime: 5,
             message: 'Data sent to backend successfully',
-            data: transformedData
+            data: {}
         })
     } catch (ex) {
-        return res.status(404).send({
+        return res.status(500).send({
             failed: 'ok',
-            message: 'Error sending data to backend. Possible invalid ID: ' + JSON.stringify(ex),
+            waitTime: 0,
+            message: 'Error starting the engine: ' + JSON.stringify(ex),
             data: {}
         })
     }
@@ -100,6 +102,32 @@ const transformSchemaData = (data) => {
         console.log("🚀 ~ transformSchemaData ~ ex:", ex);
         return {}
     }
+}
+
+
+const startEngineForBuildAndDeploy = async (schema) => {
+    try {
+        const body = {
+            event_type: "custom_event",
+            client_payload: {
+                success: "ok",
+                message: "Data sent to backend successfully",
+                data: schema
+            }
+         }
+
+         const res = await axios.post('https://api.github.com/repos/ravi-dhyani8881/local/dispatches', body, {
+            headers: {
+                Authorization: GITHUB_ACCESS_TOKEN,
+                Accept: 'application/json'
+            }
+         });
+         return res;
+    } catch (ex) {
+        console.log("🚀 ~ startEngineForBuildAndDeploy ~ ex:", ex)
+        return ex
+    }
+
 }
 
 
