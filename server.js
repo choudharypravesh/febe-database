@@ -2,6 +2,7 @@
 const express = require('express')
 const { createServer } = require("http");
 const WebSocket = require('ws');
+const cors = require('cors');
 const cookieParser = require('cookie-parser')
 const db = require('./models')
 const userRoutes = require ('./routes/userRoutes')
@@ -21,7 +22,16 @@ const port = process.env.PORT || 3000
 //assigning the variable app to express
 const app = express()
 
-//middleware
+// Configure CORS options
+const corsOptions = {
+  origin: 'https://legendary-disco-9wp9446w6wqhjw-3000.app.github.dev', // Replace with your frontend origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Allow cookies to be sent
+};
+
+// Use the CORS middleware with the options
+app.use(cors(corsOptions));
 app.use(express.json())
 app.use('/swagger-ui', swaggerUi.serve, swaggerUi.setup(swaggerDocument, options));
 app.use(express.urlencoded({ extended: true }))
