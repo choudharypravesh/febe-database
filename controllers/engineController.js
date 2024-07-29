@@ -10,19 +10,19 @@ const publish = async (req, res) => {
         const schemaByGraphId = await axios.get(`${SOUL_API_BASE_URL}/tables/graphs/rows/${graphId}`);
         const schemaData = schemaByGraphId?.data?.data;
         const transformedData = transformSchemaData(schemaData);
-        const engineResponse = await startEngineForBuildAndDeploy(transformedData);
+        // const engineResponse = await startEngineForBuildAndDeploy(transformedData);
 
-        return res.status(engineResponse.status).send({
+        return res.status(200).send({
+            statusCode: 204,
             success: 'ok',
-            waitTime: 5,
             message: 'Data sent to backend successfully',
             data: {}
         })
     } catch (ex) {
         return res.status(500).send({
+            statusCode: 500,
             failed: 'ok',
-            waitTime: 0,
-            message: 'Error starting the engine: ' + JSON.stringify(ex),
+            message: 'Error starting the engine : ' + JSON.stringify(ex),
             data: {}
         })
     }
