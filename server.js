@@ -24,7 +24,7 @@ const app = express()
 
 // Configure CORS options
 const corsOptions = {
-  origin: 'https://legendary-disco-9wp9446w6wqhjw-3000.app.github.dev', // Replace with your frontend origin
+  origin: process.env.ORIGIN, // Replace with your frontend origin
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true // Allow cookies to be sent
