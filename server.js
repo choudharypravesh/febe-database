@@ -23,15 +23,15 @@ const port = process.env.PORT || 3000
 const app = express()
 
 // Configure CORS options
-const corsOptions = {
-  origin: process.env.ORIGIN, // Replace with your frontend origin
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // Allow cookies to be sent
-};
+// const corsOptions = {
+//   origin: process.env.ORIGIN, // Replace with your frontend origin
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true // Allow cookies to be sent
+// };
 
 // Use the CORS middleware with the options
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json())
 app.use('/swagger-ui', swaggerUi.serve, swaggerUi.setup(swaggerDocument, options));
 app.use(express.urlencoded({ extended: true }))
