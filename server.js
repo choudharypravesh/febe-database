@@ -17,10 +17,12 @@ var options = {
 };
 
 //setting up your port
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 4000
 
 //assigning the variable app to express
 const app = express()
+const router = express.Router();
+
 
 // Configure CORS options
 // const corsOptions = {
@@ -42,6 +44,10 @@ app.use(cookieParser())
 db.sequelize.sync().then(() => {
   console.log("db has been re sync")
 })
+router.get('/', (req, res) => {
+  res.send('Welcome to the API!');
+});
+app.use(router);
 app.use(function (req, res, next) {
   // Website you wish to allow to connect
   res.setHeader('Access-Control-Allow-Origin', '*');
