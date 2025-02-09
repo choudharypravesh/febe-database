@@ -9,7 +9,7 @@ const publish = async (req, res) => {
         const graphId = req.body.graph_id;
         const schemaByGraphId = await axios.get(`${SOUL_API_BASE_URL}/tables/graphs/rows/${graphId}`);
         const schemaData = schemaByGraphId?.data?.data;
-        const transformedData = transformSchemaData(schemaData);
+        const transformedData = transformSchemaData(schemaData, graphId);
 
         const engineResponse = await startEngineForBuildAndDeploy(transformedData);
 
@@ -29,12 +29,16 @@ const publish = async (req, res) => {
     }
 }
 
-const transformSchemaData = (data) => {
+const transformSchemaData = (data, graphId) => {
     try {
         const schema = data[0]
 
         const result = {
             projectName: schema.name,
+            enviromentID:"1234",
+            organizationID:"1234",
+            subOrganizationID:"1234",
+            graphID:graphId,
             tables: []
         };
 
@@ -108,19 +112,12 @@ const transformSchemaData = (data) => {
 
 const startEngineForBuildAndDeploy = async (schema) => {
     try {
-        const metaDataAdded = {
-            ...schema,
-            enviromentID:"1234",
-            organizationID:"1234",
-            subOrganizationID:"1234",
-            graphID:"1234",
-        }
         const body = {
             event_type: "custom_event",
             client_payload: {
                 success: "ok",
                 message: "Data sent to backend successfully",
-                data: metaDataAdded
+                data: schema
             }
          }
 
