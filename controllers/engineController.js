@@ -108,12 +108,19 @@ const transformSchemaData = (data) => {
 
 const startEngineForBuildAndDeploy = async (schema) => {
     try {
+        const metaDataAdded = {
+            ...schema,
+            enviromentID:"1234",
+            organizationID:"1234",
+            subOrganizationID:"1234",
+            graphID:"1234",
+        }
         const body = {
             event_type: "custom_event",
             client_payload: {
                 success: "ok",
                 message: "Data sent to backend successfully",
-                data: schema
+                data: metaDataAdded
             }
          }
 
