@@ -1,8 +1,7 @@
 require('dotenv').config();
 const axios = require('axios')
+const WebSocket = require('ws');
 const { SOUL_API_BASE_URL, GITHUB_ACCESS_TOKEN } = process.env;
-
-
 
 const publish = async (req, res) => {
     try {
@@ -10,7 +9,7 @@ const publish = async (req, res) => {
         const schemaByGraphId = await axios.get(`${SOUL_API_BASE_URL}/tables/graphs/rows/${graphId}`);
         const schemaData = schemaByGraphId?.data?.data;
         const transformedData = transformSchemaData(schemaData, graphId);
-
+        console.log("🚀 ~ transformedData ~ ex:", transformedData)
         const engineResponse = await startEngineForBuildAndDeploy(transformedData);
 
         return res.status(200).send({
@@ -109,7 +108,6 @@ const transformSchemaData = (data, graphId) => {
     }
 }
 
-
 const startEngineForBuildAndDeploy = async (schema) => {
     try {
         const body = {
@@ -135,8 +133,34 @@ const startEngineForBuildAndDeploy = async (schema) => {
 
 }
 
+const publishCallback = async (req, res) => {
+    console.log("[HTTP] Received GitHub callback:", req.body);  
+    const socketServer = req.app.locals.socketServer; // Access WebSocket server
+
+  if (!socketServer) {
+    return res.status(500).json({ error: "WebSocket server is not available" });
+  }
+
+  // Extract relevant data from GitHub request (modify as needed)
+  const message = {
+    event: "publish_complete",
+    graphId: req.body.graphId || "unknown",
+    status: req.body.status || "success",
+    timestamp: new Date().toISOString(),
+  };
+
+  // Send the update to all connected WebSocket clients
+  socketServer.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(message));
+    }
+  });
+
+  res.status(200).json({ success: true, message: "Update sent to WebSocket clients." });
+}
 
 
 module.exports = {
-    publish
+    publish,
+    publishCallback
 }

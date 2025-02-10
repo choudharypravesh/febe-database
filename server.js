@@ -63,42 +63,65 @@ app.use(function (req, res, next) {
 app.use('/v1/api/auth', userRoutes)
 app.use('/v1/api/engine', engineRoutes)
 const server = createServer(app);
-//listening to server connection
-server.listen(port, function (error) {
-  if (error) console.log("Error in server setup");
-  console.log(`Server is listening on http://${host}:${port}`);
-})
 
 app.on('close', function(){
   db.sequelize.close();
 })
 
-
-const socketServer = new WebSocket.Server({server});
+const socketServer = new WebSocket.Server({ server });
+// Store WebSocket server instance in app.locals
+app.locals.socketServer = socketServer;
 socketServer.on('connection', (socketClient, req) => {
-  //https://stackoverflow.com/questions/22429744/how-to-setup-route-for-websocket-server-in-express
   app.locals.clients = socketServer.clients;
-  //console.log('[SERVER] app.locals.client:', app.locals.clients);
-  //get the IP address of the client
   const ip = req.socket.remoteAddress;
   console.log('[SERVER] connected - Ip:', ip);
   console.log('[SERVER] client Set length: ', socketServer.clients.size);
+
   socketClient.on('message', (data) => {
-    // data: from client's message
-    // A client WebSocket broadcasting to all connected WebSocket clients
     console.log('[SERVER] data: ', JSON.stringify([data]));
-    socketServer.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify([data]), (err) => {
-          if(err){
-            console.log(`[SERVER] error:${err}`);
-          }
-        });
-      }
-    });
+    const message = data.toString(); // Convert Buffer to string
+    console.log('[SERVER] Received:', message);
+
+    try {
+      const jsonData = JSON.parse(message);
+      // if (jsonData.callbackUrl === 'ws://localhost:4000/publishCallback') {
+        handlePublishCallback(jsonData);
+      // } else {
+      //   broadcastMessage(data);
+      // }
+    } catch (error) {
+      console.error('[SERVER] Error parsing JSON:', error);
+    }
   });
-  socketClient.on('close', (socketClient) => {
+
+  socketClient.on('close', () => {
     console.log('[SERVER] Close connected');
     console.log('[SERVER] Number of clients: ', socketServer.clients.size);
   });
+});
+
+function handlePublishCallback(data) {
+  console.log('[SERVER] Handling publish callback:', data);
+  sendMessageToClients(data);
+}
+
+function broadcastMessage(data) {
+  sendMessageToClients(data);
+}
+
+function sendMessageToClients(data) {
+  socketServer.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify([data]), (err) => {
+        if (err) {
+          console.log(`[SERVER] error:${err}`);
+        }
+      });
+    }
+  });
+}
+
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
