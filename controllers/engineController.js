@@ -8,8 +8,7 @@ const publish = async (req, res) => {
         const graphId = req.body.graph_id;
         const schemaByGraphId = await axios.get(`${SOUL_API_BASE_URL}/tables/graphs/rows/${graphId}`);
         const schemaData = schemaByGraphId?.data?.data;
-        const transformedData = transformSchemaData(schemaData, graphId);
-        console.log("🚀 ~ transformedData ~ ex:", transformedData)
+        const transformedData = transformSchema(schemaData, graphId);
         const engineResponse = await startEngineForBuildAndDeploy(transformedData);
 
         return res.status(200).send({
@@ -28,83 +27,108 @@ const publish = async (req, res) => {
     }
 }
 
-const transformSchemaData = (data, graphId) => {
+function transformSchema(data, graph_id) {
     try {
-        const schema = data[0]
+        const schema = data[0];
+        if (!schema || typeof schema !== 'object') {
+            throw new Error("Invalid schema provided");
+        }
 
         const result = {
-            projectName: schema.name,
+            projectName: schema.name || "Unknown Project",
             enviromentID:"1234",
             organizationID:"1234",
             subOrganizationID:"1234",
-            graphID:graphId,
+            graphID:graph_id,
+            schema: JSON.stringify(schema),
             tables: []
         };
 
-        const tableDict = JSON.parse(schema.tableDict);
-        const linkDict = JSON.parse(schema.linkDict);
+        let tableDict, linkDict;
+        try {
+            tableDict = JSON.parse(schema.tableDict);
+            linkDict = JSON.parse(schema.linkDict);
+        } catch (error) {
+            throw new Error("Error parsing tableDict or linkDict: " + error.message);
+        }
 
-        // Helper function to get table name by id
-        const getTableNameById = (id) => {
-            for (const tableKey in tableDict) {
-                if (tableDict[tableKey].id === id) {
-                    return tableDict[tableKey].name;
-                }
-            }
-            return null;
+        if (!tableDict || !linkDict) {
+            throw new Error("tableDict or linkDict is missing or invalid");
+        }
+
+        // Helper functions
+        const getFieldNameById = (tableId, fieldId) => {
+            const table = tableDict[tableId];
+            return table?.fields?.find(f => f.id === fieldId)?.name;
         };
 
-        // Create a map to hold table relations
+        const getTableNameById = (id) => tableDict[id]?.name;
+
         const tableRelations = {};
 
-        // Iterate over linkDict to find relations
-        for (const linkKey in linkDict) {
-            const link = linkDict[linkKey];
-            const [endpoint1, endpoint2] = link.endpoints;
-
-            // Assume endpoint1 is the primary key side (one side) and endpoint2 is the foreign key side (many side)
-            const tableId1 = endpoint1.id;
-            const tableId2 = endpoint2.id;
-
-            const relatedTableName1 = getTableNameById(tableId1);
-            const relatedTableName2 = getTableNameById(tableId2);
-
-            if (!tableRelations[tableId1]) {
-                tableRelations[tableId1] = new Set();
-            }
-            tableRelations[tableId1].add(relatedTableName2);
-        }
-
-        // Iterate over tableDict to structure the tables
-        for (const tableKey in tableDict) {
-            const table = tableDict[tableKey];
-            const tableName = table.name;
-            const fields = table.fields.map(field => ({
-                name: field.name,
-                type: field.type
-            }));
-
-            const relations = [];
-            if (tableRelations[table.id]) {
-                tableRelations[table.id].forEach(relatedTableName => {
-                    relations.push({ table: [{ name: relatedTableName }] });
+        // Relationship grouping logic
+        const upsertRelationship = (sourceTableId, targetTableName, mapping) => {
+            if (!tableRelations[sourceTableId]) tableRelations[sourceTableId] = [];
+            
+            const existing = tableRelations[sourceTableId].find(
+                rel => rel.table === targetTableName
+            );
+            
+            if (existing) {
+                existing.mappings.push(mapping);
+            } else {
+                tableRelations[sourceTableId].push({
+                    table: targetTableName,
+                    mappings: [mapping]
                 });
             }
+        };
 
-            const tableEntry = {
-                [tableName]: {
-                    fields,
-                    relations
-                }
-            };
+        // Process links
+        for (const link of Object.values(linkDict)) {
+            try {
+                if (!link.endpoints?.length === 2) continue;
+                
+                const [ep1, ep2] = link.endpoints;
+                const t1 = ep1.id, t2 = ep2.id;
+                const f1 = getFieldNameById(t1, ep1.fieldId);
+                const f2 = getFieldNameById(t2, ep2.fieldId);
+                const tn1 = getTableNameById(t1);
+                const tn2 = getTableNameById(t2);
 
-            result.tables.push(tableEntry);
+                if (!tn1 || !tn2 || !f1 || !f2) continue;
+
+                // Create bidirectional mappings
+                const mapping1 = { [`${tn1}.${f1}`]: `${tn2}.${f2}` };
+                const mapping2 = { [`${tn2}.${f2}`]: `${tn1}.${f1}` };
+
+                upsertRelationship(t1, tn2, mapping1);
+                upsertRelationship(t2, tn1, mapping2);
+            } catch (error) {
+                console.error("Error processing link:", error);
+            }
         }
 
-        return result;
-    } catch (ex) {
-        console.log("🚀 ~ transformSchemaData ~ ex:", ex);
-        return {}
+        // Build final tables
+        for (const table of Object.values(tableDict)) {
+            try {
+                if (!table.name || !table.fields) continue;
+                
+                result.tables.push({
+                    [table.name]: {
+                        fields: table.fields.map(({ name, type }) => ({ name, type })),
+                        relations: tableRelations[table.id] || []
+                    }
+                });
+            } catch (error) {
+                console.error("Error processing table:", error);
+            }
+        }
+
+        return result
+    } catch (error) {
+        console.error("Transform error:", error);
+        return null;
     }
 }
 
